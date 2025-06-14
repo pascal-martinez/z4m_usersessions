@@ -19,13 +19,13 @@
  * --------------------------------------------------------------------
  * ZnetDK 4 Mobile User sessions module Controller class
  *
- * File version: 1.0
- * Last update: 04/25/2025
+ * File version: 1.1
+ * Last update: 06/10/2025
  */
 
 namespace z4m_usersessions\mod\controller;
 
-use \z4m_usersessions\mod\Z4MUserSessionFile;
+use \z4m_usersessions\mod\UserSessionManager;
 
 class Z4MUserSessionsCtrl extends \AppController {
 
@@ -66,7 +66,7 @@ class Z4MUserSessionsCtrl extends \AppController {
         $rowCount = $request->count;
         $response = new \Response();
         $rows = [];
-        $isSessionSavePathReadable = self::getSessionDataFromFiles($rows);
+        $isSessionSavePathReadable = UserSessionManager::getSessionDataFromFiles($rows);
         if (!$isSessionSavePathReadable) {
             $sessionSavePath = session_save_path();
             $rows[0]['summary'] = MOD_Z4M_USERSESSIONS_SETTINGS_PHP_ROW;
@@ -86,11 +86,9 @@ class Z4MUserSessionsCtrl extends \AppController {
     static protected function action_clean() {
         $method = \Request::getMethod();
         $response = new \Response($method !== 'GET');
-        $count = session_gc();
-        $message = \General::getFilledMessage(MOD_Z4M_USERSESSIONS_ACTION_CLEAN_SUCCESS, $count);
+        $message = UserSessionManager::clean($method === 'GET');
         if ($method === 'GET') {
-            session_destroy();
-            $response->setCustomContent($message);
+            $response->setCustomContent($message . PHP_EOL);
         } else {
             $response->setSuccessMessage(NULL, $message);
         }
@@ -109,7 +107,7 @@ class Z4MUserSessionsCtrl extends \AppController {
             return $response;
         }
         try {
-            $count = self::killUserSessions($request->login_name, $request->application_key, FALSE);
+            $count = UserSessionManager::killUserSessions($request->login_name, $request->application_key, FALSE);
             $response->setSuccessMessage(NULL, \General::getFilledMessage(MOD_Z4M_USERSESSIONS_ACTION_KILL_SUCCESS, $count));
         } catch (\Exception $ex) {
             \General::writeErrorLog(__METHOD__, $ex->getMessage());
@@ -127,119 +125,18 @@ class Z4MUserSessionsCtrl extends \AppController {
     static protected function action_killall() {
         $request = new \Request();
         $response = new \Response();
-        if ($request::getMethod()=== 'GET') {
-            // Call by web service: session data are saved before killing sessions
-            session_write_close();
-        }
         try {
-            $count = self::killUserSessions(NULL, NULL, $request->preserve_current_session);
-            $message = \General::getFilledMessage(MOD_Z4M_USERSESSIONS_ACTION_KILL_SUCCESS, $count);
+            $message = UserSessionManager::killAll($request->preserve_current_session,
+                    $request::getMethod()=== 'GET', $request::getMethod()=== 'GET');
             if ($request::getMethod()=== 'GET') {
-                $response->setCustomContent($message);
+                $response->setCustomContent($message . PHP_EOL);
             } else {
                 $response->setSuccessMessage(NULL, $message);
             }
         } catch (\Exception $ex) {
-            \General::writeErrorLog(__METHOD__, $ex->getMessage());
-            if ($request::getMethod()=== 'GET') {
-                $response->setCustomContent(MOD_Z4M_USERSESSIONS_ACTION_KILL_FAILED);
-            } else {
-                $response->setFailedMessage(NULL, MOD_Z4M_USERSESSIONS_ACTION_KILL_FAILED);
-            }
+            $response->setFailedMessage(NULL, $ex->getMessage());
         }
         return $response;
-    }
-
-    /**
-     * Returns the PHP session files.
-     * @return array The absolute file path of the session files found in the
-     * the directory set to the PHP session.save_path parameter.
-     */
-    static protected function getSessionFiles() {
-        $sessionSavePath = session_save_path();
-        return glob($sessionSavePath . DIRECTORY_SEPARATOR . 'sess_*');
-    }
-
-    /**
-     * Returns the file path of the current user's session
-     * @return string Session file path
-     */
-    static protected function getCurrentSessionFile() {
-        $currentSessionFile = new Z4MUserSessionFile();
-        return $currentSessionFile->getFilePath();
-    }
-
-    /**
-     * Extracts session data from session files and convert them to datatable
-     * rows for display.
-     * @param array $allSessionsData the datatable rows matching the session
-     * data found.
-     * @param string|NULL $loginName Optionally, the login name that the session
-     * files should match.
-     * @param string|NULL $applicationKey Optionally, the application key that
-     * the session files should match.
-     * @param boolean $withFilePath If TRUE, the session file path is added to
-     * the returned rows.
-     * @return bool Value TRUE if session files can be read within the directory
-     * where session files are stored. FALSE otherwise.
-     */
-    static protected function getSessionDataFromFiles(array &$allSessionsData, $loginName = NULL, $applicationKey = NULL, $withFilePath = FALSE) {
-        $sessionFiles = self::getSessionFiles();
-        $isSessionSavePathReadable = TRUE;
-        if (count($sessionFiles) === 0) {
-            $sessionFiles = [self::getCurrentSessionFile()];
-            $isSessionSavePathReadable = FALSE;
-        }
-        foreach ($sessionFiles as $filepath) {
-            $sessionFile = new Z4MUserSessionFile($filepath, $loginName, $applicationKey);
-            $rows = $sessionFile->convertSessionDataToDatalistRows($withFilePath);
-            if (count($rows) > 0) {
-                $allSessionsData = array_merge($allSessionsData, $rows);
-            }
-        }
-        self::sortByModificationTime($allSessionsData);
-        return $isSessionSavePathReadable;
-    }
-
-    /**
-     * Sorts the specified rows by session file modification time in reverse
-     * order.
-     * @param array $rows The rows to sort.
-     */
-    static protected function sortByModificationTime(&$rows) {
-        usort($rows, function ($a, $b){
-            return $b['session_timestamp'] - $a['session_timestamp'];
-        });
-    }
-
-    /**
-     * Kills user sessions.
-     * @param string $loginName Optional, the login name that session file
-     * should match to be removed.
-     * @param string $applicationKey Optional, the application key that session
-     * file should match to be removed.
-     * @param boolean $preserveCurrentSession When TRUE, the current user
-     * session is preserved and not killed.
-     * @return int Number of session files removed.
-     * @throws \Exception No session file to remove for the specified login name
-     * and application key.
-     */
-    static protected function killUserSessions($loginName = NULL, $applicationKey = NULL, $preserveCurrentSession = TRUE) {
-        $rows = [];
-        self::getSessionDataFromFiles($rows, $loginName, $applicationKey, TRUE);
-        if (count($rows) === 0 && !is_null($loginName) && !is_null($applicationKey)) {
-            throw new \Exception("No session to kill for user 'login_name={$loginName}' and 'application_key={$applicationKey}'.");
-        }
-        $count = 0;
-        foreach ($rows as $row) {
-            $sessionFile = new Z4MUserSessionFile($row['file_path']);
-            if ($preserveCurrentSession && $sessionFile->doesMatchCurrentUserSession()) {
-                continue;
-            }
-            $sessionFile->remove();
-            $count++;
-        }
-        return $count;
     }
 
 }
