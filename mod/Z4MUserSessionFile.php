@@ -19,8 +19,8 @@
  * --------------------------------------------------------------------
  * ZnetDK 4 Mobile User sessions module PHP class
  *
- * File version: 1.0
- * Last update: 04/24/2025
+ * File version: 1.1
+ * Last update: 06/15/2025
  */
 
 namespace z4m_usersessions\mod;
@@ -67,7 +67,8 @@ class Z4MUserSessionFile extends UserSessionFile {
         $thisAppURI = MOD_Z4M_USERSESSIONS_APPLICATION_URI === NULL
                 ? \General::getAbsoluteURI() : MOD_Z4M_USERSESSIONS_APPLICATION_URI;
         foreach ($decodedSessionData as $appKey => $sessionData) {
-            if (!is_array($sessionData) || strpos($appKey, $thisAppURI) !== 0) {
+            if (!is_array($sessionData) || ($thisAppURI !== 'ALL' 
+                    && strpos($appKey, $thisAppURI) !== 0)) {
                 // This is not session data for this App
                 continue;
             }

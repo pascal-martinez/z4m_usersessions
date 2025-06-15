@@ -18,8 +18,8 @@
  * --------------------------------------------------------------------
  * Parameters of the ZnetDK 4 Mobile User sessions module
  *
- * File version: 1.1
- * Last update: 06/10/2025
+ * File version: 1.2
+ * Last update: 06/15/2025
  */
 
 
@@ -28,6 +28,8 @@
  * @var string|NULL The application URI.
  * If NULL, the application URI is obtained calling the
  * \General::getAbsoluteURI() method.
+ * If set to 'ALL', all existing sessions in the session directory (see PHP
+ * 'session.save_path' option) are retrieved (no filter is applied).
  */
 define('MOD_Z4M_USERSESSIONS_APPLICATION_URI', NULL);
 
@@ -45,9 +47,9 @@ define('MOD_Z4M_USERSESSIONS_COLOR_SCHEME', NULL);
  * Module version number
  * @return string Version
  */
-define('MOD_Z4M_USERSESSIONS_VERSION_NUMBER','1.1');
+define('MOD_Z4M_USERSESSIONS_VERSION_NUMBER','1.2');
 /**
  * Module version date
  * @return string Date in W3C format
  */
-define('MOD_Z4M_USERSESSIONS_VERSION_DATE','2025-06-10');
+define('MOD_Z4M_USERSESSIONS_VERSION_DATE','2025-06-15');

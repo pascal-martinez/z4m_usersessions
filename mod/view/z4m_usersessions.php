@@ -19,8 +19,8 @@
  * --------------------------------------------------------------------
  * ZnetDK 4 Mobile User sessions module view
  *
- * File version: 1.0
- * Last update: 04/24/2025
+ * File version: 1.1
+ * Last update: 06/15/2025
  */
 $color = defined('CFG_MOBILE_W3CSS_THEME_COLOR_SCHEME')
         ? CFG_MOBILE_W3CSS_THEME_COLOR_SCHEME
@@ -66,10 +66,15 @@ $color = defined('CFG_MOBILE_W3CSS_THEME_COLOR_SCHEME')
         <div class="w3-row w3-stretch">
             <div class="w3-col s12 l3 m3 w3-padding-small w3-monospace"><b>{{start_date_time}}</b></div>
             <div class="w3-col s12 l3 m3 w3-padding-small">
-                {{user_name}}
+                <b>{{user_name}}</b>
                 <a class="kill" href="#" data-login-name="{{login_name}}" data-appkey="{{application_key}}" title="<?php echo MOD_Z4M_USERSESSIONS_LIST_KILLSESSION_LINK; ?>">
                     <i class="fa fa-times fa-fw w3-text-red"></i>
                 </a>
+<?php if (MOD_Z4M_USERSESSIONS_APPLICATION_URI === 'ALL') : ?>                
+                <div class="w3-small">
+                    <i class="fa fa-at <?php echo $color['icon']; ?>"></i> {{application_key}}
+                </div>
+<?php endif; ?>
             </div>
             <div class="w3-col s12 l3 m3 w3-padding-small">
                 <div class="{{visibility}}">
