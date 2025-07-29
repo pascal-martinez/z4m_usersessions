@@ -19,8 +19,8 @@
  * --------------------------------------------------------------------
  * ZnetDK 4 Mobile User sessions module PHP class
  *
- * File version: 1.0
- * Last update: 04/24/2025
+ * File version: 1.1
+ * Last update: 06/27/2025
  */
 
 namespace z4m_usersessions\mod;
@@ -72,10 +72,15 @@ class UserSessionFile {
             throw new \Exception("Session file '{$this->filePath}' is empty.");
         }
         $decodedData = [];
-        while ($i = strpos($sessionData, '|'))
-        {
+        while ($i = strpos($sessionData, '|')) {
             $key = substr($sessionData, 0, $i);
-            $value = unserialize(substr($sessionData, 1 + $i));
+            $serializedVal = substr($sessionData, 1 + $i);
+            \ErrorHandler::suspend(); // Avoid E_WARNING - unserialize(): Extra data starting at offset...
+            $value = unserialize($serializedVal);
+            \ErrorHandler::restart();
+            if ($value === FALSE) {
+                throw new \Exception("Unserialization failed for the session file '{$this->filePath}': {$serializedVal}");
+            }
             $sessionData = substr($sessionData, 1 + $i + strlen(serialize($value)));
             $decodedData[$key] = $value;
         }

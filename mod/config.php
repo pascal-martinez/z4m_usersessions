@@ -18,8 +18,8 @@
  * --------------------------------------------------------------------
  * Parameters of the ZnetDK 4 Mobile User sessions module
  *
- * File version: 1.2
- * Last update: 06/15/2025
+ * File version: 1.3
+ * Last update: 07/29/2025
  */
 
 
@@ -47,9 +47,9 @@ define('MOD_Z4M_USERSESSIONS_COLOR_SCHEME', NULL);
  * Module version number
  * @return string Version
  */
-define('MOD_Z4M_USERSESSIONS_VERSION_NUMBER','1.2');
+define('MOD_Z4M_USERSESSIONS_VERSION_NUMBER','1.3');
 /**
  * Module version date
  * @return string Date in W3C format
  */
-define('MOD_Z4M_USERSESSIONS_VERSION_DATE','2025-06-15');
+define('MOD_Z4M_USERSESSIONS_VERSION_DATE','2025-07-29');
