@@ -19,8 +19,8 @@
  * --------------------------------------------------------------------
  * ZnetDK 4 Mobile User sessions class
  *
- * File version: 1.0
- * Last update: 06/10/2025
+ * File version: 1.1
+ * Last update: 08/13/2025
  */
 
 namespace z4m_usersessions\mod;
@@ -32,17 +32,74 @@ class UserSessionManager {
 
     /**
      * Clean expired user sessions by calling the PHP session_gc() function.
+     * if MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME PHP constant is set,
+     * anonymous sessions are also cleaned after the lifetime indicated.
      * @param boolean $isCurrentSessionDestroyed When set to TRUE, the current
      * user session is destroyed (PHP session_destroy() function) after session
      * cleaning.
-     * @return string Message indicating the number of cleaned sessions. 
+     * @return string Message indicating the number of cleaned sessions.
      */
-    static public function clean($isCurrentSessionDestroyed) {
+    static public function clean($isCurrentSessionDestroyed, $includeReport = FALSE) {
         $count = session_gc();
-        if ($isCurrentSessionDestroyed) {
-            session_destroy();
+        if ($count === FALSE) {
+            $report = "Failed to remove sessions by the garbage collector. ";
+        } else {
+            $report = "{$count} sessions removed by the garbage collector. ";
         }
-        return \General::getFilledMessage(MOD_Z4M_USERSESSIONS_ACTION_CLEAN_SUCCESS, $count);
+        session_write_close(); // Avoid error "Session file xxx is empty".
+        try {
+            $count2 = self::cleanAnonymousSessions();
+            $report .= "{$count2} anonymous sessions removed. ";
+            $count += $count2;
+        } catch (\Exception $ex) {
+            $report .= 'Error cleaning anonymous sessions: ' . $ex->getMessage() . ' ';
+        }
+        if ($isCurrentSessionDestroyed) {
+            session_start();
+            $destroyStatus = session_destroy();
+            $report .= $destroyStatus ? 'Current session is destroyed. ' : 'Failed to destroy current session.';
+        }
+        return \General::getFilledMessage(MOD_Z4M_USERSESSIONS_ACTION_CLEAN_SUCCESS, $count)
+                . ($includeReport ? ' EXTRA INFOS: ' . $report : '');
+    }
+
+    static protected function cleanAnonymousSessions() {
+        $now = new \DateTime('now');
+        $anonymousSessionsLifetime = MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME;
+        if (is_null($anonymousSessionsLifetime)
+                || !is_int($anonymousSessionsLifetime) || $anonymousSessionsLifetime < 1) {
+            return 0;
+        }
+        $rows = [];
+        try {
+            self::getSessionDataFromFiles($rows, NULL, NULL, TRUE);
+        } catch (\Exception $ex) {
+            throw new \Exception('Error getting session data from files: ' . $ex->getMessage());
+        }
+        $sessionFilesToRemove = [];
+        foreach ($rows as $row) {
+            if (key_exists('login_name', $row)
+                    || in_array($row['file_path'], $sessionFilesToRemove)) {
+                continue;
+            }
+            $startDateTime = new \DateTime();
+            $startDateTime->setTimestamp($row['session_timestamp']);
+            $endDateTime = Z4MUserSessionFile::calculateSessionEndDateTime($startDateTime, FALSE, TRUE);
+            if ($now > $endDateTime) {
+                $sessionFilesToRemove[] = $row['file_path'];
+            }
+        }
+        $count = 0;
+        foreach ($sessionFilesToRemove as $sessionFilePath) {
+            try {
+                $sessionFile = new Z4MUserSessionFile($sessionFilePath);
+            } catch (\Exception $ex) {
+                throw new \Exception("Error removing session file '{$sessionFilePath}': " . $ex->getMessage());
+            }
+            $sessionFile->remove();
+            $count++;
+        }
+        return $count;
     }
 
     /**

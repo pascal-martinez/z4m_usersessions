@@ -18,8 +18,8 @@
  * --------------------------------------------------------------------
  * Parameters of the ZnetDK 4 Mobile User sessions module
  *
- * File version: 1.3
- * Last update: 07/29/2025
+ * File version: 1.4
+ * Last update: 08/11/2025
  */
 
 
@@ -32,6 +32,18 @@
  * 'session.save_path' option) are retrieved (no filter is applied).
  */
 define('MOD_Z4M_USERSESSIONS_APPLICATION_URI', NULL);
+
+/**
+ * Lifetime in seconds of an anonymous session.
+ * An anononymous session is a user session created when user display the login
+ * page.
+ * @var int|NULL The anonymous session lifetime in seconds.
+ * If NULL, the anonymous sessions are not cleaned by the
+ * UserSessionManager::clean() method.
+ * If lifetime is set, anonymous session are cleaned after the indicated
+ * deadline.
+ */
+define('MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME', 300);
 
 /**
  * Color scheme applied to the User sessions view.
@@ -47,9 +59,9 @@ define('MOD_Z4M_USERSESSIONS_COLOR_SCHEME', NULL);
  * Module version number
  * @return string Version
  */
-define('MOD_Z4M_USERSESSIONS_VERSION_NUMBER','1.3');
+define('MOD_Z4M_USERSESSIONS_VERSION_NUMBER','1.4');
 /**
  * Module version date
  * @return string Date in W3C format
  */
-define('MOD_Z4M_USERSESSIONS_VERSION_DATE','2025-07-29');
+define('MOD_Z4M_USERSESSIONS_VERSION_DATE','2025-08-11');

@@ -19,8 +19,8 @@
  * --------------------------------------------------------------------
  * ZnetDK 4 Mobile User sessions module view fragment
  * 
- * File version: 1.1
- * Last update: 06/15/2025
+ * File version: 1.2
+ * Last update: 08/11/2025
  */
 ?>
 <div id="z4m-user-sessions-settings-modal" class="w3-modal">
@@ -79,6 +79,11 @@ foreach ($znetdkSettings as $zdkParamName => $anchor) : ?>
                             <td class="param">MOD_Z4M_USERSESSIONS_APPLICATION_URI</td>
                             <td class="w3-monospace">-</td>
                             <th class="w3-monospace"><?php echo MOD_Z4M_USERSESSIONS_APPLICATION_URI === NULL ? 'null' : "'" . MOD_Z4M_USERSESSIONS_APPLICATION_URI . "'"; ?></th>
+                        </tr>
+                        <tr>
+                            <td class="param">MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME</td>
+                            <td class="w3-monospace">-</td>
+                            <th class="w3-monospace"><?php echo MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME === NULL ? 'null' : MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME; ?></th>
                         </tr>
                     </tbody>
                 </table>

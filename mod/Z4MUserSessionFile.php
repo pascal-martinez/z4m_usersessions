@@ -19,8 +19,8 @@
  * --------------------------------------------------------------------
  * ZnetDK 4 Mobile User sessions module PHP class
  *
- * File version: 1.1
- * Last update: 06/15/2025
+ * File version: 1.2
+ * Last update: 08/11/2025
  */
 
 namespace z4m_usersessions\mod;
@@ -67,7 +67,7 @@ class Z4MUserSessionFile extends UserSessionFile {
         $thisAppURI = MOD_Z4M_USERSESSIONS_APPLICATION_URI === NULL
                 ? \General::getAbsoluteURI() : MOD_Z4M_USERSESSIONS_APPLICATION_URI;
         foreach ($decodedSessionData as $appKey => $sessionData) {
-            if (!is_array($sessionData) || ($thisAppURI !== 'ALL' 
+            if (!is_array($sessionData) || ($thisAppURI !== 'ALL'
                     && strpos($appKey, $thisAppURI) !== 0)) {
                 // This is not session data for this App
                 continue;
@@ -113,9 +113,10 @@ class Z4MUserSessionFile extends UserSessionFile {
         $startDateTime = new \DateTime();
         $startDateTime->setTimestamp($sessionTimestamp);
         $lastTimeAccess = key_exists('last_time_access', $sessionData) ? $sessionData['last_time_access'] : FALSE;
-        $endDateTime = self::calculateSessionEndDateTime($startDateTime, $lastTimeAccess);
         $returnedRow = array_intersect_key($sessionData, array_flip(['login_name', 'ip_address', 'user_name']));
-        if (!key_exists('user_name', $returnedRow)) {
+        $isAnonymous = !key_exists('user_name', $returnedRow);
+        $endDateTime = self::calculateSessionEndDateTime($startDateTime, $lastTimeAccess, $isAnonymous);
+        if ($isAnonymous) {
             $returnedRow['user_name'] = MOD_Z4M_USERSESSIONS_LIST_UNKNOWNUSER_LABEL;
         }
         $returnedRow['application_key'] = $applicationKey;
@@ -128,15 +129,24 @@ class Z4MUserSessionFile extends UserSessionFile {
     }
 
     /**
-     * Calculates session end time from the session start time and the 
-     * session.gc_maxlifetime. If session is opened in public mode, the last 
+     * Calculates session end time from the session start time and the
+     * session.gc_maxlifetime. If session is opened in public mode, the last
      * access time is used instead of session.gc_maxlifetime.
+     * For anonymous sessions, the end date time is calculated from the session
+     * lifetime set via the MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME PHP
+     * constant.
      * @param \DateTime $startDateTime Last session modification time
-     * @param \DateTime|FALSE $lastTimeAccess Last time access 
+     * @param \DateTime|FALSE $lastTimeAccess Last time access
+     * @param Boolean $isAnonymous If TRUE, this is an anonymous session.
      * @return \DateTime Calculated end time.
      */
-    static protected function calculateSessionEndDateTime(\DateTime $startDateTime, $lastTimeAccess) {
-        if ($lastTimeAccess === FALSE) { // Private access
+    static public function calculateSessionEndDateTime(\DateTime $startDateTime, $lastTimeAccess, $isAnonymous) {
+        $anonymousSessionsLifetime = MOD_Z4M_USERSESSIONS_ANONYMOUS_SESSION_LIFETIME;
+        if ($isAnonymous && !is_null($anonymousSessionsLifetime)
+                && is_int($anonymousSessionsLifetime) && $anonymousSessionsLifetime > 0) {
+            $endDateTime = clone $startDateTime;
+            $endDateTime->add(new \DateInterval("PT{$anonymousSessionsLifetime}S"));
+        } elseif ($lastTimeAccess === FALSE) { // Private access
             $endDateTime = clone $startDateTime;
             $maxLifeTime = ini_get('session.gc_maxlifetime'); // In seconds
             $endDateTime->add(new \DateInterval("PT{$maxLifeTime}S"));
